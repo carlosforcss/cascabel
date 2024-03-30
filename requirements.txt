@@ -25,3 +25,5 @@ typing_extensions==4.1.1
 wrapt==1.12.1
 yarl==1.7.2
 youtube-dl==2021.12.17
+youtube-search-python
+yt-dlp

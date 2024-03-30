@@ -5,74 +5,105 @@ from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 import asyncio
 
-class music_cog(commands.Cog):
+
+class MusicTopic(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
-        #all the music related stuff
+
+        # all the music related stuff
         self.is_playing = False
         self.is_paused = False
 
         # 2d array containing [song, channel]
         self.music_queue = []
-        self.YDL_OPTIONS = {'format': 'bestaudio/best'}
-        self.FFMPEG_OPTIONS = {'options': '-vn'}
+        self.YDL_OPTIONS = {"format": "bestaudio/best"}
+        self.FFMPEG_OPTIONS = {"options": "-vn"}
 
         self.vc = None
         self.ytdl = YoutubeDL(self.YDL_OPTIONS)
 
-     #searching the item on youtube
+    # searching the item on youtube
     def search_yt(self, item):
         if item.startswith("https://"):
             title = self.ytdl.extract_info(item, download=False)["title"]
-            return{'source':item, 'title':title}
+            return {"source": item, "title": title}
         search = VideosSearch(item, limit=1)
-        return{'source':search.result()["result"][0]["link"], 'title':search.result()["result"][0]["title"]}
+        return {
+            "source": search.result()["result"][0]["link"],
+            "title": search.result()["result"][0]["title"],
+        }
 
     async def play_next(self):
         if len(self.music_queue) > 0:
             self.is_playing = True
 
-            #get the first url
-            m_url = self.music_queue[0][0]['source']
+            # get the first url
+            m_url = self.music_queue[0][0]["source"]
 
-            #remove the first element as you are currently playing it
+            # remove the first element as you are currently playing it
             self.music_queue.pop(0)
             loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(m_url, download=False))
-            song = data['url']
-            self.vc.play(discord.FFmpegPCMAudio(song, executable= "ffmpeg.exe", **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(), self.bot.loop))
+            data = await loop.run_in_executor(
+                None, lambda: self.ytdl.extract_info(m_url, download=False)
+            )
+            song = data["url"]
+            self.vc.play(
+                discord.FFmpegPCMAudio(song, **self.FFMPEG_OPTIONS),
+                after=lambda e: asyncio.run_coroutine_threadsafe(
+                    self.play_next(), self.bot.loop
+                ),
+            )
         else:
             self.is_playing = False
 
-    # infinite loop checking 
+    # infinite loop checking
     async def play_music(self, ctx):
         if len(self.music_queue) > 0:
             self.is_playing = True
 
-            m_url = self.music_queue[0][0]['source']
-            #try to connect to voice channel if you are not already connected
+            m_url = self.music_queue[0][0]["source"]
+            # try to connect to voice channel if you are not already connected
             if self.vc == None or not self.vc.is_connected():
+                voice_channel = self.music_queue[0][1]
+                print(f"Connecting to voice channel {voice_channel}.")
                 self.vc = await self.music_queue[0][1].connect()
-
-                #in case we fail to connect
+                print("Post connect to voice channel")
+                # in case we fail to connect
                 if self.vc == None:
+                    print("Error conecting to voice channel.#")
                     await ctx.send("```Could not connect to the voice channel```")
                     return
             else:
                 await self.vc.move_to(self.music_queue[0][1])
-            #remove the first element as you are currently playing it
+            # remove the first element as you are currently playing it
             self.music_queue.pop(0)
             loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(m_url, download=False))
-            song = data['url']
-            self.vc.play(discord.FFmpegPCMAudio(song, executable= "ffmpeg.exe", **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(), self.bot.loop))
+            data = await loop.run_in_executor(
+                None, lambda: self.ytdl.extract_info(m_url, download=False)
+            )
+            song = data["url"]
+            print(f"Playing: {data['url']}")
+            try:
+                self.vc.play(
+                    discord.FFmpegPCMAudio(
+                        song, **self.FFMPEG_OPTIONS
+                    ),
+                    after=lambda e: asyncio.run_coroutine_threadsafe(
+                        self.play_next(), self.bot.loop
+                    ),
+                )
+            except Exception as e:
+                import pdb; pdb.set_trace()
+                print(f"It was an exception playing music {e}")
 
         else:
             self.is_playing = False
 
-    @commands.command(name="play", aliases=["p","playing"], help="Plays a selected song from youtube")
+    @commands.command(
+        name="play", aliases=["p", "playing"], help="Plays a selected song from youtube"
+    )
     async def play(self, ctx, *args):
+        print(f"Play command received {args}")
         query = " ".join(args)
         try:
             voice_channel = ctx.author.voice.channel
@@ -84,12 +115,16 @@ class music_cog(commands.Cog):
         else:
             song = self.search_yt(query)
             if type(song) == type(True):
-                await ctx.send("```Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.```")
+                await ctx.send(
+                    "```Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.```"
+                )
             else:
                 if self.is_playing:
-                    await ctx.send(f"**#{len(self.music_queue)+2} -'{song['title']}'** added to the queue")  
+                    await ctx.send(
+                        f"**#{len(self.music_queue)+2} -'{song['title']}'** added to the queue"
+                    )
                 else:
-                    await ctx.send(f"**'{song['title']}'** added to the queue")  
+                    await ctx.send(f"**'{song['title']}'** added to the queue")
                 self.music_queue.append([song, voice_channel])
                 if self.is_playing == False:
                     await self.play_music(ctx)
@@ -105,46 +140,67 @@ class music_cog(commands.Cog):
             self.is_playing = True
             self.vc.resume()
 
-    @commands.command(name = "resume", aliases=["r"], help="Resumes playing with the discord bot")
+    @commands.command(
+        name="resume", aliases=["r"], help="Resumes playing with the discord bot"
+    )
     async def resume(self, ctx, *args):
         if self.is_paused:
             self.is_paused = False
             self.is_playing = True
             self.vc.resume()
 
-    @commands.command(name="skip", aliases=["s"], help="Skips the current song being played")
+    @commands.command(
+        name="skip", aliases=["s"], help="Skips the current song being played"
+    )
     async def skip(self, ctx):
         if self.vc != None and self.vc:
             self.vc.stop()
-            #try to play next in the queue if it exists
+            # try to play next in the queue if it exists
             await self.play_music(ctx)
 
-
-    @commands.command(name="queue", aliases=["q"], help="Displays the current songs in queue")
+    @commands.command(
+        name="queue", aliases=["q"], help="Displays the current songs in queue"
+    )
     async def queue(self, ctx):
         retval = ""
         for i in range(0, len(self.music_queue)):
-            retval += f"#{i+1} -" + self.music_queue[i][0]['title'] + "\n"
+            retval += f"#{i+1} -" + self.music_queue[i][0]["title"] + "\n"
 
         if retval != "":
             await ctx.send(f"```queue:\n{retval}```")
         else:
             await ctx.send("```No music in queue```")
 
-    @commands.command(name="clear", aliases=["c", "bin"], help="Stops the music and clears the queue")
+    @commands.command(
+        name="clear", aliases=["c", "bin"], help="Stops the music and clears the queue"
+    )
     async def clear(self, ctx):
         if self.vc != None and self.is_playing:
             self.vc.stop()
         self.music_queue = []
         await ctx.send("```Music queue cleared```")
 
-    @commands.command(name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC")
+    @commands.command(
+        name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC"
+    )
     async def dc(self, ctx):
         self.is_playing = False
         self.is_paused = False
         await self.vc.disconnect()
-    
+
     @commands.command(name="remove", help="Removes last song added to queue")
     async def re(self, ctx):
         self.music_queue.pop()
         await ctx.send("```last song removed```")
+
+    @commands.command(name="test", help="Test everything is working fine.")
+    async def re(self, ctx):
+        voice_channel = ctx.author.voice.channel
+        voice_client = ctx.voice_client
+        print(voice_client)
+        print(f"Trying to connect to channel -> {voice_channel}")
+        try:
+            await voice_channel.connect()
+        except Exception as e:
+            print(f"It was an error -> {e}")
+        print("Successfully Connected!")
