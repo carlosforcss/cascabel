@@ -7,6 +7,15 @@ import asyncio
 
 
 class MusicTopic(commands.Cog):
+
+    async def __aenter__(self):
+        # You can add any setup code you need here
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        # You can add any cleanup code here
+        pass
+
     def __init__(self, bot):
         self.bot = bot
 
