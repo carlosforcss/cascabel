@@ -1,3 +1,4 @@
+import random
 from ast import alias
 import discord
 from discord.ext import commands
@@ -197,12 +198,8 @@ class MusicTopic(commands.Cog):
         self.music_queue.pop()
         await ctx.send("```last song removed```")
 
-    @commands.command(name="test", help="Test everything is working fine.")
-    async def re(self, ctx):
-        voice_channel = ctx.author.voice.channel
-        self.logger.info(f"Trying to connect to channel -> {voice_channel}")
-        try:
-            await voice_channel.connect()
-        except Exception as e:
-            print(f"It was an error -> {e}")
-        print("Successfully Connected!")
+    @commands.command(name="shuffle", help="Shuffle playlist.")
+    async def shuffle(self, ctx):
+        shuffled_list = self.music_queue.copy()
+        random.shuffle(shuffled_list)
+        self.music_queue = shuffled_list
