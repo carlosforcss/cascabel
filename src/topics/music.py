@@ -4,7 +4,7 @@ from discord.ext import commands
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 import asyncio
-from utils.logger import get_logger
+from src.utils.logger import get_logger
 
 
 class MusicTopic(commands.Cog):
