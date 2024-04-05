@@ -1,0 +1,12 @@
+version: "3"
+
+
+services:
+  cascabel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
+    env_file: .env
+    volumes:
+      - .:/app/

@@ -4,19 +4,15 @@ from discord.ext import commands
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 import asyncio
+from utils.logger import get_logger
 
 
 class MusicTopic(commands.Cog):
 
-    async def __aenter__(self):
-        # You can add any setup code you need here
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        # You can add any cleanup code here
-        pass
+    logger = get_logger()
 
     def __init__(self, bot):
+        self.logger.info("Initializing MusicTopic")
         self.bot = bot
 
         # all the music related stuff
@@ -74,12 +70,10 @@ class MusicTopic(commands.Cog):
             # try to connect to voice channel if you are not already connected
             if self.vc == None or not self.vc.is_connected():
                 voice_channel = self.music_queue[0][1]
-                print(f"Connecting to voice channel {voice_channel}.")
+                self.logger.info(f"Connecting to voice channel {voice_channel}.")
                 self.vc = await self.music_queue[0][1].connect()
-                print("Post connect to voice channel")
-                # in case we fail to connect
                 if self.vc == None:
-                    print("Error conecting to voice channel.#")
+                    self.logger.error("Error conecting to voice channel.#")
                     await ctx.send("```Could not connect to the voice channel```")
                     return
             else:
@@ -91,7 +85,7 @@ class MusicTopic(commands.Cog):
                 None, lambda: self.ytdl.extract_info(m_url, download=False)
             )
             song = data["url"]
-            print(f"Playing: {data['url']}")
+            self.logger.info(f"Playing: {data['url']}")
             try:
                 self.vc.play(
                     discord.FFmpegPCMAudio(
@@ -102,8 +96,7 @@ class MusicTopic(commands.Cog):
                     ),
                 )
             except Exception as e:
-                import pdb; pdb.set_trace()
-                print(f"It was an exception playing music {e}")
+                self.logger.error(f"It was an exception playing music {e}")
 
         else:
             self.is_playing = False
@@ -112,7 +105,7 @@ class MusicTopic(commands.Cog):
         name="play", aliases=["p", "playing"], help="Plays a selected song from youtube"
     )
     async def play(self, ctx, *args):
-        print(f"Play command received {args}")
+        self.logger.info(f"Play command received {args}")
         query = " ".join(args)
         try:
             voice_channel = ctx.author.voice.channel
@@ -190,7 +183,9 @@ class MusicTopic(commands.Cog):
         await ctx.send("```Music queue cleared```")
 
     @commands.command(
-        name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC"
+        name="stop",
+        aliases=["disconnect", "l", "d", "leave", "exit"],
+        help="Kick the bot from VC"
     )
     async def dc(self, ctx):
         self.is_playing = False
@@ -205,9 +200,7 @@ class MusicTopic(commands.Cog):
     @commands.command(name="test", help="Test everything is working fine.")
     async def re(self, ctx):
         voice_channel = ctx.author.voice.channel
-        voice_client = ctx.voice_client
-        print(voice_client)
-        print(f"Trying to connect to channel -> {voice_channel}")
+        self.logger.info(f"Trying to connect to channel -> {voice_channel}")
         try:
             await voice_channel.connect()
         except Exception as e:

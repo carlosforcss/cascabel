@@ -6,7 +6,8 @@ cffi==1.14.5
 chardet==4.0.0
 colorama==0.4.4
 cryptography==3.4.7
-discord.py==1.7.3
+discord==2.3.2
+discord.py==2.3.2
 ffmpeg==1.4
 idna==3.3
 isort==5.8.0

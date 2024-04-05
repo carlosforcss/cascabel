@@ -2,3 +2,4 @@ token.txt
 __pycache__
 .env
 .idea/
+logs.txt
