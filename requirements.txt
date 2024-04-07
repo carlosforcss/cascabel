@@ -28,3 +28,4 @@ yarl==1.7.2
 youtube-dl==2021.12.17
 youtube-search-python
 yt-dlp
+spotipy

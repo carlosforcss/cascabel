@@ -5,6 +5,8 @@ from discord.ext import commands
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 import asyncio
+
+from src.repositories.spotify import get_song_name_and_artist
 from src.utils.logger import get_logger
 
 
@@ -113,6 +115,11 @@ class MusicTopic(commands.Cog):
         except:
             await ctx.send("```You need to connect to a voice channel first!```")
             return
+
+        if query.startswith("https://open.spotify.com/"):
+            song_name, song_artist = get_song_name_and_artist(query)
+            query = f"{song_name} - {song_artist}"
+
         if self.is_paused:
             self.vc.resume()
         else:
